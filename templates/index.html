@@ -3,46 +3,466 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>AI Resume Analyzer</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
 </head>
 
 <body>
 
-    <div class="container">
+<div class="container">
 
-        <h1>AI Resume Analyzer</h1>
+    <!-- HEADER -->
+    <header class="header">
 
-        <p>Upload your resume to analyze it.</p>
+        <div class="badge">
+            AI POWERED
+        </div>
 
-        <div class="upload-box">
+        <h1>
+            AI Resume Analyzer
+        </h1>
 
-            <form action="/analyze"
-                  method="POST"
-                  enctype="multipart/form-data">
+        <p>
+            Analyze your resume, improve your ATS score,
+            and match it with your target job.
+        </p>
 
-                <input
-                    type="file"
-                    name="resume"
-                    accept=".pdf"
-                    required
-                >
+    </header>
 
-                <br><br>
 
-                <button type="submit">
-                    Analyze Resume
-                </button>
+    <!-- UPLOAD CARD -->
+    <div class="card upload-card">
 
-            </form>
+        <h2>
+            📄 Analyze Your Resume
+        </h2>
+
+        <p class="description">
+            Upload your PDF resume and optionally
+            paste a Job Description.
+        </p>
+
+        <form
+            action="/analyze"
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+            <label for="resume">
+                Resume PDF
+            </label>
+
+            <input
+                type="file"
+                id="resume"
+                name="resume"
+                accept=".pdf"
+                required
+            >
+
+            <label for="job_description">
+
+                Job Description
+
+                <span>
+                    Optional
+                </span>
+
+            </label>
+
+            <textarea
+                id="job_description"
+                name="job_description"
+                rows="8"
+                placeholder="Paste the job description here..."
+            ></textarea>
+
+            <button type="submit">
+                Analyze Resume 🚀
+            </button>
+
+        </form>
+
+    </div>
+
+
+    {% if analyzed %}
+
+    <!-- RESULTS -->
+    <section class="results">
+
+        <h2 class="results-title">
+            📊 Resume Analysis
+        </h2>
+
+
+        <!-- SCORE CARDS -->
+        <div class="score-grid">
+
+            <div class="score-card">
+
+                <div class="score-number">
+                    {{ ats_score }}/100
+                </div>
+
+                <h3>
+                    ATS Score
+                </h3>
+
+                <p>
+                    Overall resume score
+                </p>
+
+            </div>
+
+
+            <div class="score-card">
+
+                <div class="score-number">
+                    {{ job_match }}%
+                </div>
+
+                <h3>
+                    Job Match
+                </h3>
+
+                <p>
+                    Match with job description
+                </p>
+
+            </div>
+
+
+            <div class="score-card">
+
+                <div class="score-number">
+                    {{ skills|length }}
+                </div>
+
+                <h3>
+                    Skills Found
+                </h3>
+
+                <p>
+                    Detected technical skills
+                </p>
+
+            </div>
+
+
+            <div class="score-card">
+
+                <div class="score-number">
+                    {{ missing_skills|length }}
+                </div>
+
+                <h3>
+                    Missing Skills
+                </h3>
+
+                <p>
+                    Skills to consider
+                </p>
+
+            </div>
 
         </div>
 
-    </div>
+
+        <!-- ATS BREAKDOWN -->
+        <div class="card">
+
+            <h2>
+                📈 ATS Score Breakdown
+            </h2>
+
+            <p class="description">
+                Your score is calculated using
+                multiple resume factors.
+            </p>
+
+
+            {% for category, value in score_breakdown.items() %}
+
+            <div class="progress-row">
+
+                <div class="progress-header">
+
+                    <span>
+                        {{ category }}
+                    </span>
+
+                    <span>
+                        {{ value }}
+                    </span>
+
+                </div>
+
+
+                <div class="progress-bar">
+
+                    <div
+                        class="progress-fill"
+                        data-value="{{ value * 2.5 }}"
+                    ></div>
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- MATCHED + MISSING -->
+        <div class="analysis-grid">
+
+
+            <!-- MATCHED SKILLS -->
+            <div class="card">
+
+                <h2>
+                    ✅ Matched Skills
+                </h2>
+
+                {% if matched_skills %}
+
+                <div class="skills-list">
+
+                    {% for skill in matched_skills %}
+
+                    <span class="skill matched">
+                        ✓ {{ skill }}
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <p>
+                    No matched skills found.
+                </p>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- MISSING SKILLS -->
+            <div class="card">
+
+                <h2>
+                    ❌ Missing Skills
+                </h2>
+
+                {% if missing_skills %}
+
+                <div class="skills-list">
+
+                    {% for skill in missing_skills %}
+
+                    <span class="skill missing">
+                        ✗ {{ skill }}
+                    </span>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <p>
+                    No major missing skills detected.
+                </p>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- JOB MATCH -->
+        {% if job_description %}
+
+        <div class="card">
+
+            <h2>
+                🎯 Job Description Match
+            </h2>
+
+            <div class="match-score">
+                {{ job_match }}%
+            </div>
+
+
+            {% if job_matched %}
+
+            <h3>
+                Skills Matching the Job
+            </h3>
+
+            <div class="skills-list">
+
+                {% for skill in job_matched %}
+
+                <span class="skill matched">
+                    ✓ {{ skill }}
+                </span>
+
+                {% endfor %}
+
+            </div>
+
+            {% endif %}
+
+
+            {% if job_missing %}
+
+            <h3>
+                Missing Skills for This Job
+            </h3>
+
+            <div class="skills-list">
+
+                {% for skill in job_missing %}
+
+                <span class="skill missing">
+                    ✗ {{ skill }}
+                </span>
+
+                {% endfor %}
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        {% endif %}
+
+
+        <!-- SUGGESTIONS -->
+        <div class="card">
+
+            <h2>
+                💡 Resume Improvement Suggestions
+            </h2>
+
+
+            {% if suggestions %}
+
+            <ul class="suggestions">
+
+                {% for suggestion in suggestions %}
+
+                <li>
+                    {{ suggestion }}
+                </li>
+
+                {% endfor %}
+
+            </ul>
+
+            {% else %}
+
+            <p>
+                Your resume looks good.
+                Keep improving it with measurable
+                achievements.
+            </p>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- ALL SKILLS -->
+        <div class="card">
+
+            <h2>
+                🧩 All Detected Skills
+            </h2>
+
+            <div class="skills-list">
+
+                {% for skill in skills %}
+
+                <span class="skill">
+                    {{ skill }}
+                </span>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- RESUME TEXT -->
+        <div class="card">
+
+            <details>
+
+                <summary>
+                    📑 View Extracted Resume Text
+                </summary>
+
+                <div class="resume-text">
+                    {{ resume_text }}
+                </div>
+
+            </details>
+
+        </div>
+
+    </section>
+
+    {% endif %}
+
+</div>
+
+
+<!-- PROGRESS BAR SCRIPT -->
+<script>
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const progressBars =
+            document.querySelectorAll(".progress-fill");
+
+        progressBars.forEach(function (bar) {
+
+            const value =
+                parseFloat(bar.dataset.value);
+
+            if (!isNaN(value)) {
+
+                const safeValue =
+                    Math.min(Math.max(value, 0), 100);
+
+                bar.style.width =
+                    safeValue + "%";
+            }
+
+        });
+
+    });
+
+</script>
 
 </body>
 

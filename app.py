@@ -3,272 +3,418 @@ from utils.resume_parser import extract_text_from_pdf
 from utils.skill_detector import detect_skills
 from utils.ats_score import calculate_ats_score
 from werkzeug.utils import secure_filename
+
 import os
+import re
 
 
 app = Flask(__name__)
 
-# --------------------------------------------------
-# UPLOAD FOLDER
-# --------------------------------------------------
 
-UPLOAD_FOLDER = os.path.join(app.root_path, "uploads")
+# ==========================================
+# Upload Configuration
+# ==========================================
 
-# Folder automatically create ho jayega
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+UPLOAD_FOLDER = os.path.join(
+    app.root_path,
+    "uploads"
+)
+
+os.makedirs(
+    UPLOAD_FOLDER,
+    exist_ok=True
+)
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
-# --------------------------------------------------
-# ALLOWED FILE TYPES
-# --------------------------------------------------
-
 ALLOWED_EXTENSIONS = {"pdf"}
 
 
+# ==========================================
+# Skills Database
+# ==========================================
+
+REQUIRED_SKILLS = [
+    "python",
+    "java",
+    "c++",
+    "javascript",
+    "html",
+    "css",
+    "sql",
+    "mysql",
+    "mongodb",
+    "flask",
+    "django",
+    "react",
+    "node.js",
+    "git",
+    "github",
+    "machine learning",
+    "deep learning",
+    "artificial intelligence",
+    "data science",
+    "pandas",
+    "numpy",
+    "tensorflow",
+    "pytorch",
+    "scikit-learn",
+    "power bi",
+    "excel",
+    "docker",
+    "aws"
+]
+
+
+# ==========================================
+# File Validation
+# ==========================================
+
 def allowed_file(filename):
+
     return (
         "." in filename
-        and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        and filename.rsplit(".", 1)[1].lower()
+        in ALLOWED_EXTENSIONS
     )
 
 
-# --------------------------------------------------
-# HOME PAGE
-# --------------------------------------------------
+# ==========================================
+# Job Description Matching
+# ==========================================
+
+def calculate_job_match(
+    resume_skills,
+    job_description
+):
+
+    if not job_description.strip():
+
+        return 0, [], []
+
+    jd_text = job_description.lower()
+
+    jd_skills = []
+
+    for skill in REQUIRED_SKILLS:
+
+        if skill.lower() in jd_text:
+
+            jd_skills.append(skill)
+
+    if not jd_skills:
+
+        return 0, [], []
+
+    matched = [
+        skill
+        for skill in jd_skills
+        if skill.lower() in resume_skills
+    ]
+
+    missing = [
+        skill
+        for skill in jd_skills
+        if skill.lower() not in resume_skills
+    ]
+
+    score = round(
+        (len(matched) / len(jd_skills)) * 100
+    )
+
+    return score, matched, missing
+
+
+# ==========================================
+# Resume Suggestions
+# ==========================================
+
+def generate_suggestions(
+    resume_text,
+    skills,
+    missing_skills,
+    job_description=""
+):
+
+    suggestions = []
+
+    text = resume_text.lower()
+
+    # --------------------------------------
+    # Resume Sections
+    # --------------------------------------
+
+    sections = {
+
+        "Experience": [
+            "experience",
+            "work experience",
+            "employment"
+        ],
+
+        "Education": [
+            "education",
+            "qualification",
+            "degree"
+        ],
+
+        "Projects": [
+            "projects",
+            "project"
+        ],
+
+        "Skills": [
+            "skills",
+            "technical skills"
+        ]
+    }
+
+    for section, keywords in sections.items():
+
+        if not any(
+            keyword in text
+            for keyword in keywords
+        ):
+
+            suggestions.append(
+                f"Add a clear {section} section."
+            )
+
+    # --------------------------------------
+    # Skills
+    # --------------------------------------
+
+    if len(skills) < 5:
+
+        suggestions.append(
+            "Add more relevant technical skills "
+            "that match your target role."
+        )
+
+    # --------------------------------------
+    # Projects
+    # --------------------------------------
+
+    if "project" not in text:
+
+        suggestions.append(
+            "Add 2-3 relevant projects with "
+            "technologies and measurable results."
+        )
+
+    # --------------------------------------
+    # Numbers / Achievements
+    # --------------------------------------
+
+    if not re.search(
+        r"\b\d+%|\b\d+\+|\b\d+\b",
+        resume_text
+    ):
+
+        suggestions.append(
+            "Add measurable achievements using "
+            "numbers, percentages, or metrics."
+        )
+
+    # --------------------------------------
+    # Job Description
+    # --------------------------------------
+
+    if (
+        job_description.strip()
+        and missing_skills
+    ):
+
+        suggestions.append(
+            "Consider adding relevant missing skills "
+            "if you genuinely have experience with them."
+        )
+
+    return suggestions[:6]
+
+
+# ==========================================
+# Home Page
+# ==========================================
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+
+    return render_template(
+        "index.html"
+    )
 
 
-# --------------------------------------------------
-# ANALYZE RESUME
-# --------------------------------------------------
+# ==========================================
+# Resume Analysis
+# ==========================================
 
-@app.route("/analyze", methods=["POST"])
+@app.route(
+    "/analyze",
+    methods=["POST"]
+)
 def analyze():
 
-    # Check file
+    # --------------------------------------
+    # Check File
+    # --------------------------------------
+
     if "resume" not in request.files:
-        return "<h2>Error: No resume uploaded.</h2>"
+
+        return (
+            "<h2>Error: No resume uploaded.</h2>"
+        )
 
     file = request.files["resume"]
 
-    # Check filename
     if file.filename == "":
-        return "<h2>Error: No file selected.</h2>"
 
-    # Check PDF
+        return (
+            "<h2>Error: No file selected.</h2>"
+        )
+
     if not allowed_file(file.filename):
-        return "<h2>Error: Only PDF files are allowed.</h2>"
 
-    # Secure filename
-    filename = secure_filename(file.filename)
+        return (
+            "<h2>Error: Only PDF files are allowed.</h2>"
+        )
 
-    # Full path
+    # --------------------------------------
+    # Save File
+    # --------------------------------------
+
+    filename = secure_filename(
+        file.filename
+    )
+
     file_path = os.path.join(
         app.config["UPLOAD_FOLDER"],
         filename
     )
 
-    # Save uploaded resume
     file.save(file_path)
 
     try:
 
-        # --------------------------------------------------
-        # EXTRACT TEXT
-        # --------------------------------------------------
+        # ==================================
+        # 1. Extract Resume Text
+        # ==================================
 
-        resume_text = extract_text_from_pdf(file_path)
+        resume_text = extract_text_from_pdf(
+            file_path
+        )
 
-        # --------------------------------------------------
-        # DETECT SKILLS
-        # --------------------------------------------------
+        # ==================================
+        # 2. Detect Skills
+        # ==================================
 
-        skills = detect_skills(resume_text)
+        skills = detect_skills(
+            resume_text
+        )
 
-        # --------------------------------------------------
-        # REQUIRED SKILLS
-        # --------------------------------------------------
+        # ==================================
+        # 3. ATS Score
+        # ==================================
 
-        required_skills = [
-            "python",
-            "java",
-            "sql",
-            "machine learning",
-            "git",
-            "react",
-            "docker",
-            "aws"
-        ]
-
-        # --------------------------------------------------
-        # ATS SCORE
-        # --------------------------------------------------
-
-        score, matched_skills, missing_skills = calculate_ats_score(
+        (
+            ats_score,
+            matched_skills,
+            missing_skills,
+            score_breakdown
+        ) = calculate_ats_score(
+            resume_text,
             skills,
-            required_skills
+            REQUIRED_SKILLS
         )
 
-        # --------------------------------------------------
-        # RESULT PAGE
-        # --------------------------------------------------
+        # ==================================
+        # 4. Job Description
+        # ==================================
 
-        matched_html = "".join(
-            f"<li>✓ {skill}</li>"
-            for skill in matched_skills
+        job_description = request.form.get(
+            "job_description",
+            ""
         )
 
-        missing_html = "".join(
-            f"<li>✗ {skill}</li>"
-            for skill in missing_skills
+        # ==================================
+        # 5. Job Match
+        # ==================================
+
+        (
+            job_match,
+            job_matched,
+            job_missing
+        ) = calculate_job_match(
+            skills,
+            job_description
         )
 
-        detected_html = "".join(
-            f"<li>{skill}</li>"
-            for skill in skills
+        # ==================================
+        # 6. Suggestions
+        # ==================================
+
+        suggestions = generate_suggestions(
+            resume_text,
+            skills,
+            missing_skills,
+            job_description
         )
 
-        return f"""
-        <!DOCTYPE html>
+        # ==================================
+        # 7. Render Dashboard
+        # ==================================
 
-        <html>
-        <head>
+        return render_template(
+            "index.html",
 
-            <title>Resume Analysis</title>
+            analyzed=True,
 
-            <style>
+            ats_score=ats_score,
 
-                body {{
-                    font-family: Arial, sans-serif;
-                    background: #f4f6f8;
-                    margin: 0;
-                    padding: 40px;
-                }}
+            job_match=job_match,
 
-                .container {{
-                    max-width: 900px;
-                    margin: auto;
-                    background: white;
-                    padding: 30px;
-                    border-radius: 12px;
-                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-                }}
+            skills=skills,
 
-                h1 {{
-                    text-align: center;
-                    color: #222;
-                }}
+            matched_skills=matched_skills,
 
-                h2 {{
-                    color: #333;
-                    margin-top: 30px;
-                }}
+            missing_skills=missing_skills,
 
-                .score {{
-                    text-align: center;
-                    font-size: 40px;
-                    font-weight: bold;
-                    margin: 20px 0;
-                }}
+            job_matched=job_matched,
 
-                ul {{
-                    line-height: 1.8;
-                }}
+            job_missing=job_missing,
 
-                .resume-text {{
-                    background: #f1f1f1;
-                    padding: 20px;
-                    border-radius: 8px;
-                    white-space: pre-wrap;
-                    overflow-x: auto;
-                }}
+            suggestions=suggestions,
 
-                .back {{
-                    display: inline-block;
-                    margin-top: 30px;
-                    padding: 10px 20px;
-                    background: #333;
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 6px;
-                }}
+            score_breakdown=score_breakdown,
 
-            </style>
-
-        </head>
-
-        <body>
-
-            <div class="container">
-
-                <h1>Resume Analysis</h1>
-
-                <div class="score">
-                    ATS Score: {score}/100
-                </div>
-
-
-                <h2>Matched Skills</h2>
-
-                <ul>
-                    {matched_html}
-                </ul>
-
-
-                <h2>Missing Skills</h2>
-
-                <ul>
-                    {missing_html}
-                </ul>
-
-
-                <h2>Detected Skills</h2>
-
-                <ul>
-                    {detected_html}
-                </ul>
-
-
-                <h2>Resume Text</h2>
-
-                <div class="resume-text">
-                    {resume_text}
-                </div>
-
-
-                <a href="/" class="back">
-                    Analyze Another Resume
-                </a>
-
-            </div>
-
-        </body>
-        </html>
-        """
+            resume_text=resume_text
+        )
 
     except Exception as e:
 
         return f"""
-        <h2>Something went wrong while analyzing the resume.</h2>
+        <h2>
+            Something went wrong while
+            analyzing the resume.
+        </h2>
 
         <p>
             Error: {str(e)}
         </p>
 
-        <a href="/">Go Back</a>
+        <a href="/">
+            Go Back
+        </a>
         """
 
 
-# --------------------------------------------------
-# RUN APPLICATION
-# --------------------------------------------------
+# ==========================================
+# Run Application
+# ==========================================
 
 if __name__ == "__main__":
+
     app.run(
         debug=True,
         host="127.0.0.1",
