@@ -1,17 +1,22 @@
-
 from openai import OpenAI
 from dotenv import load_dotenv
 import os
 
+
+# Load environment variables
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-from openai import OpenAI
-import os
+# Get OpenAI API key
+api_key = os.getenv("OPENAI_API_KEY")
 
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Create OpenAI client
+client = OpenAI(
+    api_key=api_key,
+    timeout=60.0,
+    max_retries=2
+)
 
 
 def analyze_resume_with_ai(resume_text, job_description=""):
@@ -38,9 +43,22 @@ Analyze the resume and provide:
 Keep the response concise, practical, and useful for an internship or entry-level candidate.
 """
 
-    response = client.responses.create(
-        model="gpt-5.6-luna",
-        input=prompt
-    )
 
-    return response.output_text
+    try:
+
+        response = client.responses.create(
+            model="gpt-5.6-luna",
+            input=prompt
+        )
+
+        return response.output_text
+
+
+    except Exception as e:
+
+        print("========================================")
+        print("OPENAI API ERROR")
+        print(repr(e))
+        print("========================================")
+
+        raise
