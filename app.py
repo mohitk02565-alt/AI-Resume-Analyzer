@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request
+
 from utils.resume_parser import extract_text_from_pdf
 from utils.skill_detector import detect_skills
 from utils.ats_score import calculate_ats_score
 from utils.ai_analyzer import analyze_resume_with_ai
+
 from werkzeug.utils import secure_filename
 
 import os
@@ -27,7 +29,6 @@ os.makedirs(
 )
 
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
 
 ALLOWED_EXTENSIONS = {"pdf"}
 
@@ -91,7 +92,6 @@ def calculate_job_match(
 ):
 
     if not job_description.strip():
-
         return 0, [], []
 
     jd_text = job_description.lower()
@@ -101,11 +101,9 @@ def calculate_job_match(
     for skill in REQUIRED_SKILLS:
 
         if skill.lower() in jd_text:
-
             jd_skills.append(skill)
 
     if not jd_skills:
-
         return 0, [], []
 
     matched = [
@@ -142,6 +140,7 @@ def generate_suggestions(
 
     text = resume_text.lower()
 
+
     # --------------------------------------
     # Resume Sections
     # --------------------------------------
@@ -171,6 +170,7 @@ def generate_suggestions(
         ]
     }
 
+
     for section, keywords in sections.items():
 
         if not any(
@@ -181,6 +181,7 @@ def generate_suggestions(
             suggestions.append(
                 f"Add a clear {section} section."
             )
+
 
     # --------------------------------------
     # Skills
@@ -193,6 +194,7 @@ def generate_suggestions(
             "that match your target role."
         )
 
+
     # --------------------------------------
     # Projects
     # --------------------------------------
@@ -203,6 +205,7 @@ def generate_suggestions(
             "Add 2-3 relevant projects with "
             "technologies and measurable results."
         )
+
 
     # --------------------------------------
     # Numbers / Achievements
@@ -218,6 +221,7 @@ def generate_suggestions(
             "numbers, percentages, or metrics."
         )
 
+
     # --------------------------------------
     # Job Description
     # --------------------------------------
@@ -231,6 +235,7 @@ def generate_suggestions(
             "Consider adding relevant missing skills "
             "if you genuinely have experience with them."
         )
+
 
     return suggestions[:6]
 
@@ -267,7 +272,9 @@ def analyze():
             "<h2>Error: No resume uploaded.</h2>"
         )
 
+
     file = request.files["resume"]
+
 
     if file.filename == "":
 
@@ -275,11 +282,13 @@ def analyze():
             "<h2>Error: No file selected.</h2>"
         )
 
+
     if not allowed_file(file.filename):
 
         return (
             "<h2>Error: Only PDF files are allowed.</h2>"
         )
+
 
     # --------------------------------------
     # Save File
@@ -296,6 +305,7 @@ def analyze():
 
     file.save(file_path)
 
+
     try:
 
         # ==================================
@@ -306,6 +316,7 @@ def analyze():
             file_path
         )
 
+
         # ==================================
         # 2. Detect Skills
         # ==================================
@@ -313,6 +324,7 @@ def analyze():
         skills = detect_skills(
             resume_text
         )
+
 
         # ==================================
         # 3. ATS Score
@@ -329,6 +341,7 @@ def analyze():
             REQUIRED_SKILLS
         )
 
+
         # ==================================
         # 4. Job Description
         # ==================================
@@ -337,6 +350,7 @@ def analyze():
             "job_description",
             ""
         )
+
 
         # ==================================
         # 5. Job Match
@@ -350,6 +364,7 @@ def analyze():
             skills,
             job_description
         )
+
 
         # ==================================
         # 6. Suggestions
@@ -372,8 +387,9 @@ def analyze():
             job_description
         )
 
+
         # ==================================
-        # 7. Render Dashboard
+        # 8. Render Dashboard
         # ==================================
 
         return render_template(
@@ -396,6 +412,7 @@ def analyze():
             job_missing=job_missing,
 
             suggestions=suggestions,
+
             ai_analysis=ai_analysis,
 
             score_breakdown=score_breakdown,
@@ -403,21 +420,45 @@ def analyze():
             resume_text=resume_text
         )
 
+
     except Exception as e:
 
+        # ==================================
+        # Error Logging
+        # ==================================
+
+        app.logger.exception(
+            "AI RESUME ANALYSIS ERROR"
+        )
+
         return f"""
-        <h2>
-            Something went wrong while
-            analyzing the resume.
-        </h2>
+        <html>
 
-        <p>
-            Error: {str(e)}
-        </p>
+        <head>
+            <title>Resume Analyzer Error</title>
+        </head>
 
-        <a href="/">
-            Go Back
-        </a>
+        <body>
+
+            <h2>
+                Something went wrong while
+                analyzing the resume.
+            </h2>
+
+            <p>
+                <strong>Error:</strong>
+                {str(e)}
+            </p>
+
+            <br>
+
+            <a href="/">
+                Go Back
+            </a>
+
+        </body>
+
+        </html>
         """
 
 
