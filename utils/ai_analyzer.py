@@ -1,5 +1,17 @@
- 
-import requests
+
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+from openai import OpenAI
+import os
+
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def analyze_resume_with_ai(resume_text, job_description=""):
@@ -26,18 +38,9 @@ Analyze the resume and provide:
 Keep the response concise, practical, and useful for an internship or entry-level candidate.
 """
 
-
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": "llama3.2:3b",
-            "prompt": prompt,
-            "stream": False
-        }
+    response = client.responses.create(
+        model="gpt-5.6-luna",
+        input=prompt
     )
 
-
-    response.raise_for_status()
-
-    return response.json()["response"]
- 
+    return response.output_text
