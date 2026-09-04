@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 from utils.resume_parser import extract_text_from_pdf
 from utils.skill_detector import detect_skills
 from utils.ats_score import calculate_ats_score
+from utils.ai_analyzer import analyze_resume_with_ai
 from werkzeug.utils import secure_filename
 
 import os
@@ -361,6 +362,16 @@ def analyze():
             job_description
         )
 
+
+        # ==================================
+        # 7. AI Analysis
+        # ==================================
+
+        ai_analysis = analyze_resume_with_ai(
+            resume_text,
+            job_description
+        )
+
         # ==================================
         # 7. Render Dashboard
         # ==================================
@@ -385,6 +396,7 @@ def analyze():
             job_missing=job_missing,
 
             suggestions=suggestions,
+            ai_analysis=ai_analysis,
 
             score_breakdown=score_breakdown,
 

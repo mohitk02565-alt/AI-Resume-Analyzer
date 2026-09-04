@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -15,13 +16,20 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='style.css') }}"
     >
+
 </head>
+
 
 <body>
 
+
 <div class="container">
 
-    <!-- HEADER -->
+
+    <!-- =========================
+         HEADER
+    ========================== -->
+
     <header class="header">
 
         <div class="badge">
@@ -40,7 +48,11 @@
     </header>
 
 
-    <!-- UPLOAD CARD -->
+
+    <!-- =========================
+         UPLOAD CARD
+    ========================== -->
+
     <div class="card upload-card">
 
         <h2>
@@ -51,6 +63,7 @@
             Upload your PDF resume and optionally
             paste a Job Description.
         </p>
+
 
         <form
             action="/analyze"
@@ -70,6 +83,7 @@
                 required
             >
 
+
             <label for="job_description">
 
                 Job Description
@@ -80,12 +94,14 @@
 
             </label>
 
+
             <textarea
                 id="job_description"
                 name="job_description"
                 rows="8"
                 placeholder="Paste the job description here..."
             ></textarea>
+
 
             <button type="submit">
                 Analyze Resume 🚀
@@ -96,18 +112,29 @@
     </div>
 
 
+
     {% if analyzed %}
 
-    <!-- RESULTS -->
+
+    <!-- =========================
+         RESULTS
+    ========================== -->
+
     <section class="results">
+
 
         <h2 class="results-title">
             📊 Resume Analysis
         </h2>
 
 
-        <!-- SCORE CARDS -->
+
+        <!-- =========================
+             SCORE CARDS
+        ========================== -->
+
         <div class="score-grid">
+
 
             <div class="score-card">
 
@@ -124,6 +151,7 @@
                 </p>
 
             </div>
+
 
 
             <div class="score-card">
@@ -143,6 +171,7 @@
             </div>
 
 
+
             <div class="score-card">
 
                 <div class="score-number">
@@ -158,6 +187,7 @@
                 </p>
 
             </div>
+
 
 
             <div class="score-card">
@@ -176,10 +206,15 @@
 
             </div>
 
+
         </div>
 
 
-        <!-- ATS BREAKDOWN -->
+
+        <!-- =========================
+             ATS BREAKDOWN
+        ========================== -->
+
         <div class="card">
 
             <h2>
@@ -225,16 +260,22 @@
         </div>
 
 
-        <!-- MATCHED + MISSING -->
+
+        <!-- =========================
+             MATCHED + MISSING SKILLS
+        ========================== -->
+
         <div class="analysis-grid">
 
 
             <!-- MATCHED SKILLS -->
+
             <div class="card">
 
                 <h2>
                     ✅ Matched Skills
                 </h2>
+
 
                 {% if matched_skills %}
 
@@ -261,12 +302,15 @@
             </div>
 
 
+
             <!-- MISSING SKILLS -->
+
             <div class="card">
 
                 <h2>
                     ❌ Missing Skills
                 </h2>
+
 
                 {% if missing_skills %}
 
@@ -292,10 +336,15 @@
 
             </div>
 
+
         </div>
 
 
-        <!-- JOB MATCH -->
+
+        <!-- =========================
+             JOB MATCH
+        ========================== -->
+
         {% if job_description %}
 
         <div class="card">
@@ -303,6 +352,7 @@
             <h2>
                 🎯 Job Description Match
             </h2>
+
 
             <div class="match-score">
                 {{ job_match }}%
@@ -314,6 +364,7 @@
             <h3>
                 Skills Matching the Job
             </h3>
+
 
             <div class="skills-list">
 
@@ -330,11 +381,13 @@
             {% endif %}
 
 
+
             {% if job_missing %}
 
             <h3>
                 Missing Skills for This Job
             </h3>
+
 
             <div class="skills-list">
 
@@ -355,7 +408,11 @@
         {% endif %}
 
 
-        <!-- SUGGESTIONS -->
+
+        <!-- =========================
+             RULE BASED SUGGESTIONS
+        ========================== -->
+
         <div class="card">
 
             <h2>
@@ -390,12 +447,96 @@
         </div>
 
 
-        <!-- ALL SKILLS -->
+
+        <!-- =========================
+             AI RESUME ANALYSIS
+        ========================== -->
+
+        <div class="card ai-card">
+
+
+            <div class="ai-header">
+
+                <div>
+
+                    <h2>
+                        🤖 AI Resume Analysis
+                    </h2>
+
+                    <p class="description">
+                        AI-powered analysis of your resume
+                        and career profile.
+                    </p>
+
+                </div>
+
+                <div class="ai-badge">
+                    LOCAL AI
+                </div>
+
+            </div>
+
+
+
+            {% if ai_analysis %}
+
+            <div class="ai-analysis">
+
+
+                {% for section in ai_analysis.split('\n\n') %}
+
+                {% if section.strip() %}
+
+                <div class="ai-section">
+
+                    {{ section | safe }}
+
+                </div>
+
+                {% endif %}
+
+                {% endfor %}
+
+
+            </div>
+
+
+            {% else %}
+
+            <div class="ai-empty">
+
+                <div class="ai-empty-icon">
+                    🤖
+                </div>
+
+                <h3>
+                    AI Analysis Not Available
+                </h3>
+
+                <p>
+                    Make sure Ollama is running and
+                    the local AI model is available.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+
+        </div>
+
+
+
+        <!-- =========================
+             ALL DETECTED SKILLS
+        ========================== -->
+
         <div class="card">
 
             <h2>
                 🧩 All Detected Skills
             </h2>
+
 
             <div class="skills-list">
 
@@ -412,7 +553,11 @@
         </div>
 
 
-        <!-- RESUME TEXT -->
+
+        <!-- =========================
+             RESUME TEXT
+        ========================== -->
+
         <div class="card">
 
             <details>
@@ -421,48 +566,78 @@
                     📑 View Extracted Resume Text
                 </summary>
 
+
                 <div class="resume-text">
+
                     {{ resume_text }}
+
                 </div>
 
             </details>
 
         </div>
 
+
     </section>
 
+
     {% endif %}
+
 
 </div>
 
 
-<!-- PROGRESS BAR SCRIPT -->
+
+<!-- =========================
+     PROGRESS BAR SCRIPT
+========================== -->
+
 <script>
 
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
 
-        const progressBars =
-            document.querySelectorAll(".progress-fill");
+            const progressBars =
+                document.querySelectorAll(
+                    ".progress-fill"
+                );
 
-        progressBars.forEach(function (bar) {
 
-            const value =
-                parseFloat(bar.dataset.value);
+            progressBars.forEach(
+                function (bar) {
 
-            if (!isNaN(value)) {
+                    const value =
+                        parseFloat(
+                            bar.dataset.value
+                        );
 
-                const safeValue =
-                    Math.min(Math.max(value, 0), 100);
 
-                bar.style.width =
-                    safeValue + "%";
-            }
+                    if (!isNaN(value)) {
 
-        });
+                        const safeValue =
+                            Math.min(
+                                Math.max(
+                                    value,
+                                    0
+                                ),
+                                100
+                            );
 
-    });
+
+                        bar.style.width =
+                            safeValue + "%";
+
+                    }
+
+                }
+            );
+
+        }
+    );
 
 </script>
+
 
 </body>
 
